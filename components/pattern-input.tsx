@@ -71,7 +71,7 @@ export function PatternInput({ pattern, onChange }: PatternInputProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-serif font-semibold">Pattern</h3>
+        <h3 className="text-lg font-semibold">Pattern</h3>
         {pattern && (
           <Button type="button" variant="ghost" size="sm" onClick={clearPattern}>
             Clear Pattern

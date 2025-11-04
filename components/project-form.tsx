@@ -71,7 +71,7 @@ export function ProjectForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="font-serif">Basic Information</CardTitle>
+          <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>

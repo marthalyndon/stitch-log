@@ -40,7 +40,7 @@ export function PhotoUpload({ photos, onUpload, onDelete, isUploading = false }:
   return (
     <div className="space-y-4">
       <div>
-        <Label className="text-lg font-serif font-semibold">Photos</Label>
+        <Label className="text-lg font-semibold">Photos</Label>
         <p className="text-sm text-muted-foreground mt-1">
           Upload progress photos or final project photos
         </p>

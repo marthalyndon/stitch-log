@@ -26,7 +26,7 @@ export function EmptyState({ title, description, actionLabel, actionHref }: Empt
           />
         </svg>
       </div>
-      <h3 className="text-lg font-serif font-semibold mb-2">{title}</h3>
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <p className="text-muted-foreground mb-6 max-w-sm">{description}</p>
       {actionLabel && actionHref && (
         <Link href={actionHref}>

@@ -101,7 +101,7 @@ export default function BoardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-serif font-bold mb-2">Project Board</h1>
+        <h1 className="text-3xl font-bold mb-2">Project Board</h1>
         <p className="text-muted-foreground">
           Drag and drop projects to update their status
         </p>
@@ -153,7 +153,7 @@ function KanbanColumn({ status, label, color, projects }: KanbanColumnProps) {
       } transition-all`}
     >
       <div className="p-4 border-b bg-white/50">
-        <h2 className="font-serif font-semibold text-lg flex items-center justify-between">
+        <h2 className="font-semibold text-lg flex items-center justify-between">
           {label}
           <Badge variant="outline" className="ml-2">
             {projects.length}
@@ -212,7 +212,7 @@ function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   return (
     <Card className={`cursor-move hover:shadow-md transition-shadow ${isDragging ? 'rotate-3 shadow-lg' : ''}`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-serif">
+        <CardTitle className="text-base">
           <Link href={`/projects/${project.id}`} className="hover:text-primary" onClick={(e) => e.stopPropagation()}>
             {project.name}
           </Link>

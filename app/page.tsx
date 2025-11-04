@@ -62,7 +62,7 @@ export default function HomePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-serif font-bold mb-2">My Projects</h1>
+          <h1 className="text-3xl font-bold mb-2">My Projects</h1>
           <p className="text-muted-foreground">
             {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
           </p>

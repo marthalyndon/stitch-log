@@ -29,7 +29,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="font-serif text-xl">{project.name}</CardTitle>
+            <CardTitle className="text-xl">{project.name}</CardTitle>
             <Badge className={statusColors[project.status]}>
               {statusLabels[project.status]}
             </Badge>

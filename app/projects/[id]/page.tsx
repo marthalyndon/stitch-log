@@ -136,7 +136,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-serif font-bold">{project.name}</h1>
+            <h1 className="text-3xl font-bold">{project.name}</h1>
             <Badge className={statusColors[project.status]}>
               {statusLabels[project.status]}
             </Badge>
@@ -159,7 +159,7 @@ export default function ProjectDetailPage() {
       {project.patterns && project.patterns.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Pattern</CardTitle>
+            <CardTitle>Pattern</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -188,7 +188,7 @@ export default function ProjectDetailPage() {
       {project.yarns && project.yarns.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Yarn</CardTitle>
+            <CardTitle>Yarn</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -214,7 +214,7 @@ export default function ProjectDetailPage() {
       {project.needles && project.needles.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Needles</CardTitle>
+            <CardTitle>Needles</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -235,7 +235,7 @@ export default function ProjectDetailPage() {
       {project.tags && project.tags.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Tags</CardTitle>
+            <CardTitle>Tags</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">

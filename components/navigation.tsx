@@ -12,7 +12,7 @@ export function Navigation() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <h1 className="text-2xl font-serif font-bold text-primary">
+            <h1 className="text-2xl font-bold text-primary">
               Stitch Log
             </h1>
           </Link>

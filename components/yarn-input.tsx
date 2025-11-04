@@ -46,7 +46,7 @@ export function YarnInput({ yarns, onChange }: YarnInputProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-serif font-semibold">Yarn</h3>
+        <h3 className="text-lg font-semibold">Yarn</h3>
         <Button type="button" onClick={addYarn} variant="outline" size="sm">
           + Add Yarn
         </Button>

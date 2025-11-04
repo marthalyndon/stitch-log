@@ -39,7 +39,7 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-serif font-semibold">Needles</h3>
+        <h3 className="text-lg font-semibold">Needles</h3>
         <Button type="button" onClick={addNeedle} variant="outline" size="sm">
           + Add Needle
         </Button>
