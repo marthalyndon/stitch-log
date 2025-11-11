@@ -1,6 +1,6 @@
 // Database types for Stitch Log
 
-export type ProjectStatus = 'idea' | 'planned' | 'queued' | 'completed';
+export type ProjectStatus = 'idea' | 'queue' | 'in-progress' | 'on-hold' | 'completed';
 export type PhotoType = 'progress' | 'final';
 export type YarnWeight = 'lace' | 'fingering' | 'sport' | 'dk' | 'worsted' | 'aran' | 'bulky' | 'super-bulky' | 'jumbo';
 export type NeedleType = 'circular' | 'straight' | 'dpn' | 'interchangeable';
@@ -60,6 +60,22 @@ export interface Photo {
   uploaded_at: string;
 }
 
+export interface Note {
+  id: string;
+  project_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NeedleInventory {
+  id: string;
+  size: string;
+  type: NeedleType;
+  length?: string;
+  created_at: string;
+}
+
 // Extended types with relationships
 export interface ProjectWithDetails extends Project {
   patterns?: Pattern[];
@@ -67,5 +83,6 @@ export interface ProjectWithDetails extends Project {
   needles?: Needle[];
   tags?: Tag[];
   photos?: Photo[];
+  notes?: Note[];
 }
 

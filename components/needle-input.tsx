@@ -1,11 +1,13 @@
 "use client";
 
-import { Needle, NeedleType } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { Needle, NeedleType, NeedleInventory } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NeedleInputProps {
   needles: Omit<Needle, 'id' | 'project_id'>[];
@@ -15,7 +17,37 @@ interface NeedleInputProps {
 const needleTypes: NeedleType[] = ['circular', 'straight', 'dpn', 'interchangeable'];
 
 export function NeedleInput({ needles, onChange }: NeedleInputProps) {
-  const addNeedle = () => {
+  const [inventory, setInventory] = useState<NeedleInventory[]>([]);
+  const [addMode, setAddMode] = useState<'inventory' | 'custom'>('inventory');
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const fetchInventory = async () => {
+    try {
+      const response = await fetch('/api/needle-inventory');
+      if (response.ok) {
+        const data = await response.json();
+        setInventory(data);
+      }
+    } catch (error) {
+      console.error('Error fetching needle inventory:', error);
+    }
+  };
+
+  const addNeedleFromInventory = (inventoryNeedle: NeedleInventory) => {
+    onChange([
+      ...needles,
+      {
+        size: inventoryNeedle.size,
+        type: inventoryNeedle.type,
+        length: inventoryNeedle.length || '',
+      },
+    ]);
+  };
+
+  const addCustomNeedle = () => {
     onChange([
       ...needles,
       {
@@ -36,22 +68,71 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
     onChange(needles.filter((_, i) => i !== index));
   };
 
+  // Group inventory by type
+  const inventoryByType = inventory.reduce((acc, needle) => {
+    if (!acc[needle.type]) {
+      acc[needle.type] = [];
+    }
+    acc[needle.type].push(needle);
+    return acc;
+  }, {} as Record<NeedleType, NeedleInventory[]>);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Needles</h3>
-        <Button type="button" onClick={addNeedle} variant="outline" size="sm">
-          + Add Needle
-        </Button>
+        {inventory.length > 0 ? (
+          <Select value={addMode} onValueChange={(value: 'inventory' | 'custom') => setAddMode(value)}>
+            <SelectTrigger className="w-48 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inventory">From My Needles</SelectItem>
+              <SelectItem value="custom">Custom Entry</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
 
-      {needles.length === 0 && (
-        <p className="text-sm text-muted-foreground">No needles added yet. Click "Add Needle" to get started.</p>
+      {/* Add Needle Section */}
+      {inventory.length > 0 && addMode === 'inventory' ? (
+        <Card className="bg-muted/30">
+          <CardHeader>
+            <CardTitle className="text-sm">Select from Your Needle Inventory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+              {inventory.map((needle) => (
+                <Button
+                  key={needle.id}
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => addNeedleFromInventory(needle)}
+                >
+                  <span className="font-semibold">{needle.type.toUpperCase()}</span>
+                  <span className="mx-2">•</span>
+                  <span>US {needle.size}</span>
+                  {needle.length && <span className="ml-2 text-muted-foreground">({needle.length})</span>}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Button type="button" onClick={addCustomNeedle} variant="outline" size="sm">
+          + Add Needle
+        </Button>
       )}
 
+      {needles.length === 0 && (
+        <p className="text-sm text-muted-foreground">No needles added yet.</p>
+      )}
+
+      {/* Selected Needles */}
       {needles.map((needle, index) => (
         <Card key={index}>
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Needle {index + 1}</CardTitle>
               <Button
@@ -73,7 +154,7 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
                   value={needle.type}
                   onValueChange={(value) => updateNeedle(index, 'type', value as NeedleType)}
                 >
-                  <SelectTrigger id={`needle-type-${index}`}>
+                  <SelectTrigger id={`needle-type-${index}`} className="bg-white">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -91,7 +172,8 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
                   id={`needle-size-${index}`}
                   value={needle.size}
                   onChange={(e) => updateNeedle(index, 'size', e.target.value)}
-                  placeholder="e.g., US 7 / 4.5mm"
+                  placeholder="e.g., 7"
+                  className="bg-white"
                 />
               </div>
             </div>
@@ -103,7 +185,8 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
                   id={`needle-length-${index}`}
                   value={needle.length || ''}
                   onChange={(e) => updateNeedle(index, 'length', e.target.value)}
-                  placeholder="e.g., 32 inches"
+                  placeholder="e.g., 32 inch"
+                  className="bg-white"
                 />
               </div>
             )}
@@ -113,4 +196,3 @@ export function NeedleInput({ needles, onChange }: NeedleInputProps) {
     </div>
   );
 }
-

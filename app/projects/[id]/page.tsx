@@ -2,26 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ProjectWithDetails, PhotoType } from "@/lib/types";
+import { ProjectWithDetails, PhotoType, ProjectStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PhotoUpload } from "@/components/photo-upload";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProjectTimeline } from "@/components/project-timeline";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LoadingPage } from "@/components/loading";
 import Link from "next/link";
+import Image from "next/image";
 
-const statusColors = {
+const statusColors: Record<ProjectStatus, string> = {
   idea: "bg-purple-100 text-purple-800",
-  planned: "bg-blue-100 text-blue-800",
-  queued: "bg-yellow-100 text-yellow-800",
+  queue: "bg-blue-100 text-blue-800",
+  "in-progress": "bg-yellow-100 text-yellow-800",
+  "on-hold": "bg-gray-100 text-gray-800",
   completed: "bg-green-100 text-green-800",
 };
 
-const statusLabels = {
+const statusLabels: Record<ProjectStatus, string> = {
   idea: "Idea",
-  planned: "Planned",
-  queued: "Queued",
+  queue: "Queue",
+  "in-progress": "In Progress",
+  "on-hold": "On Hold",
   completed: "Completed",
 };
 
@@ -56,6 +60,25 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleStatusChange = async (newStatus: ProjectStatus) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setProject(prev => prev ? { ...prev, status: newStatus } : null);
+      } else {
+        throw new Error('Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
+
   const handlePhotoUpload = async (file: File, type: PhotoType) => {
     setIsUploading(true);
     try {
@@ -70,7 +93,6 @@ export default function ProjectDetailPage() {
       });
 
       if (response.ok) {
-        // Refresh project to show new photo
         await fetchProject();
       } else {
         throw new Error('Failed to upload photo');
@@ -84,13 +106,14 @@ export default function ProjectDetailPage() {
   };
 
   const handlePhotoDelete = async (photoId: string) => {
+    if (!confirm('Delete this photo?')) return;
+
     try {
       const response = await fetch(`/api/photos/${photoId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Refresh project to remove deleted photo
         await fetchProject();
       } else {
         throw new Error('Failed to delete photo');
@@ -130,17 +153,59 @@ export default function ProjectDetailPage() {
     return <LoadingPage message="Project not found" />;
   }
 
+  const patternData = project.patterns?.[0]?.scraped_data;
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-4">
             <h1 className="text-3xl font-bold">{project.name}</h1>
-            <Badge className={statusColors[project.status]}>
-              {statusLabels[project.status]}
-            </Badge>
           </div>
+          
+          {/* Status Dropdown */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm font-medium">Status:</span>
+            <Select value={project.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-40 bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="idea">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    Idea
+                  </span>
+                </SelectItem>
+                <SelectItem value="queue">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Queue
+                  </span>
+                </SelectItem>
+                <SelectItem value="in-progress">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    In Progress
+                  </span>
+                </SelectItem>
+                <SelectItem value="on-hold">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                    On Hold
+                  </span>
+                </SelectItem>
+                <SelectItem value="completed">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    Completed
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {project.description && (
             <p className="text-muted-foreground">{project.description}</p>
           )}
@@ -155,107 +220,179 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Pattern */}
-      {project.patterns && project.patterns.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pattern</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <p className="font-semibold">{project.patterns[0].name}</p>
-                {project.patterns[0].designer && (
-                  <p className="text-sm text-muted-foreground">by {project.patterns[0].designer}</p>
-                )}
-              </div>
-              {project.patterns[0].source_url && (
-                <a
-                  href={project.patterns[0].source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
-                >
-                  View Pattern →
-                </a>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Column - Timeline */}
+        <div className="lg:col-span-2">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-4">Project Timeline</h2>
+            <ProjectTimeline
+              projectId={projectId}
+              photos={project.photos || []}
+              notes={project.notes || []}
+              onUpdate={fetchProject}
+              onPhotoUpload={handlePhotoUpload}
+              onPhotoDelete={handlePhotoDelete}
+              isUploading={isUploading}
+            />
+          </div>
+        </div>
 
-      {/* Yarn */}
-      {project.yarns && project.yarns.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Yarn</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {project.yarns.map((yarn, index) => (
-                <div key={yarn.id} className="pb-4 border-b last:border-0 last:pb-0">
-                  <p className="font-semibold">
-                    {yarn.brand} {yarn.colorway}
-                  </p>
-                  <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                    {yarn.weight && <p>Weight: {yarn.weight}</p>}
-                    {yarn.fiber_content && <p>Fiber: {yarn.fiber_content}</p>}
-                    {yarn.yardage > 0 && <p>Yardage: {yarn.yardage} yards</p>}
-                    {yarn.notes && <p className="mt-2">{yarn.notes}</p>}
+        {/* Sidebar - Pattern & Materials Reference */}
+        <div className="space-y-6">
+          {/* Pattern Details */}
+          {project.patterns && project.patterns.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Pattern</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Pattern Photo */}
+                {patternData?.photos?.[0] && (
+                  <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                    <Image
+                      src={patternData.photos[0].medium_url}
+                      alt={project.patterns[0].name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
+                )}
+
+                <div>
+                  <p className="font-semibold text-base">{project.patterns[0].name}</p>
+                  {project.patterns[0].designer && (
+                    <p className="text-sm text-muted-foreground">by {project.patterns[0].designer}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Needles */}
-      {project.needles && project.needles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Needles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {project.needles.map((needle) => (
-                <div key={needle.id}>
-                  <p>
-                    <span className="font-semibold">{needle.type.toUpperCase()}</span> - Size {needle.size}
-                    {needle.length && ` (${needle.length})`}
-                  </p>
+                {/* Pattern Stats */}
+                {patternData && (
+                  <div className="space-y-2 text-sm">
+                    {patternData.difficulty && (
+                      <div>
+                        <span className="font-medium">Difficulty: </span>
+                        <span>{Math.round(patternData.difficulty)}/10</span>
+                      </div>
+                    )}
+                    
+                    {patternData.yardage && (
+                      <div>
+                        <span className="font-medium">Yardage: </span>
+                        <span>
+                          {patternData.yardage}
+                          {patternData.yardage_max && ` - ${patternData.yardage_max}`} yards
+                        </span>
+                      </div>
+                    )}
+
+                    {patternData.gauge && (
+                      <div>
+                        <span className="font-medium">Gauge: </span>
+                        <span>{patternData.gauge} sts</span>
+                      </div>
+                    )}
+
+                    {patternData.sizes_available && (
+                      <div>
+                        <span className="font-medium">Sizes: </span>
+                        <span className="text-xs">{patternData.sizes_available}</span>
+                      </div>
+                    )}
+
+                    {patternData.categories && patternData.categories.length > 0 && (
+                      <div>
+                        <span className="font-medium">Type: </span>
+                        <span className="text-xs">{patternData.categories.join(', ')}</span>
+                      </div>
+                    )}
+
+                    {typeof patternData.free !== 'undefined' && (
+                      <div>
+                        <Badge variant={patternData.free ? "secondary" : "outline"}>
+                          {patternData.free ? 'Free' : `${patternData.currency || '$'}${patternData.price}`}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {project.patterns[0].source_url && (
+                  <a
+                    href={project.patterns[0].source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline block"
+                  >
+                    View on Ravelry →
+                  </a>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Yarn */}
+          {project.yarns && project.yarns.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Yarn</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {project.yarns.map((yarn) => (
+                    <div key={yarn.id} className="text-sm space-y-1">
+                      <p className="font-semibold">
+                        {yarn.brand} {yarn.colorway}
+                      </p>
+                      {yarn.weight && <p className="text-xs text-muted-foreground">{yarn.weight}</p>}
+                      {yarn.fiber_content && <p className="text-xs text-muted-foreground">{yarn.fiber_content}</p>}
+                      {yarn.yardage > 0 && <p className="text-xs text-muted-foreground">{yarn.yardage} yards</p>}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Tags */}
-      {project.tags && project.tags.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Tags</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {project.tags.map((tag) => (
-                <Badge key={tag.id} variant="secondary">
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {/* Needles */}
+          {project.needles && project.needles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Needles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {project.needles.map((needle) => (
+                    <div key={needle.id}>
+                      <span className="font-semibold">{needle.type.toUpperCase()}</span>
+                      <span className="text-muted-foreground"> - Size {needle.size}</span>
+                      {needle.length && <span className="text-muted-foreground"> ({needle.length})</span>}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Photos */}
-      <PhotoUpload
-        photos={project.photos || []}
-        onUpload={handlePhotoUpload}
-        onDelete={handlePhotoDelete}
-        isUploading={isUploading}
-      />
+          {/* Tags */}
+          {project.tags && project.tags.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {project.tags.map((tag) => (
+                    <Badge key={tag.id} variant="secondary" className="text-xs">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -279,4 +416,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-

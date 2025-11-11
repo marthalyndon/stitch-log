@@ -9,29 +9,18 @@ export function Navigation() {
 
   return (
     <header className="border-b bg-card">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-primary">
-              Stitch Log
+          <Link href="/" className="flex items-center">
+            <h1 className="text-2xl font-extrabold text-primary">
+              StitchLog
             </h1>
           </Link>
           
-          <nav className="flex items-center gap-4">
-            <Link href="/">
-              <Button 
-                variant={pathname === "/" ? "default" : "ghost"}
-                className="font-medium"
-              >
-                Projects
-              </Button>
-            </Link>
-            <Link href="/board">
-              <Button 
-                variant={pathname === "/board" ? "default" : "ghost"}
-                className="font-medium"
-              >
-                Board
+          <nav className="flex items-center gap-3">
+            <Link href="/needles">
+              <Button variant="ghost" className="font-medium">
+                My Needles
               </Button>
             </Link>
             <Link href="/projects/new">

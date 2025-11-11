@@ -80,7 +80,7 @@ export function PatternInput({ pattern, onChange }: PatternInputProps) {
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle className="text-base">Import from Ravelry</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -113,7 +113,7 @@ export function PatternInput({ pattern, onChange }: PatternInputProps) {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle className="text-base">Pattern Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

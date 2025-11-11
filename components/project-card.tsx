@@ -11,15 +11,17 @@ interface ProjectCardProps {
 
 const statusColors = {
   idea: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-  planned: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-  queued: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+  queue: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  "in-progress": "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+  "on-hold": "bg-gray-100 text-gray-800 hover:bg-gray-200",
   completed: "bg-green-100 text-green-800 hover:bg-green-200",
 };
 
 const statusLabels = {
   idea: "Idea",
-  planned: "Planned",
-  queued: "Queued",
+  queue: "Queue",
+  "in-progress": "In Progress",
+  "on-hold": "On Hold",
   completed: "Completed",
 };
 

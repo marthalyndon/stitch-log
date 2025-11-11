@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Project, ProjectWithDetails, Pattern, Yarn, Needle, Tag, Photo, ProjectStatus } from './types';
+import { Project, ProjectWithDetails, Pattern, Yarn, Needle, Tag, Photo, Note, ProjectStatus } from './types';
 
 // Projects
 export async function getProjects(): Promise<ProjectWithDetails[]> {
@@ -11,6 +11,7 @@ export async function getProjects(): Promise<ProjectWithDetails[]> {
       yarns (*),
       needles (*),
       photos (*),
+      notes (*),
       project_tags (
         tags (*)
       )
@@ -36,6 +37,7 @@ export async function getProjectById(id: string): Promise<ProjectWithDetails | n
       yarns (*),
       needles (*),
       photos (*),
+      notes (*),
       project_tags (
         tags (*)
       )

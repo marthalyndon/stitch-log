@@ -71,9 +71,9 @@ export default function EditProjectPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Edit Project</h1>
-        <p className="text-muted-foreground mt-2">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-1">Edit Project</h1>
+        <p className="text-muted-foreground">
           Update details for "{project.name}"
         </p>
       </div>

@@ -107,8 +107,9 @@ export function ProjectForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="idea">Idea</SelectItem>
-                <SelectItem value="planned">Planned</SelectItem>
-                <SelectItem value="queued">Queued</SelectItem>
+                <SelectItem value="queue">Queue</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="on-hold">On Hold</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
             </Select>
@@ -132,7 +133,7 @@ export function ProjectForm({
       />
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-4">
           <TagInput
             selectedTags={formData.tags}
             onChange={(tags) => setFormData({ ...formData, tags })}

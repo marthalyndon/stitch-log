@@ -22,14 +22,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${nunito.variable} antialiased font-sans`}
-      >
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
-      </body>
+              <body
+                className={`${nunito.variable} antialiased font-sans`}
+              >
+                <Navigation />
+                <main className="container mx-auto px-6 py-8">
+                  {children}
+                </main>
+              </body>
     </html>
   );
 }
