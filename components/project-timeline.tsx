@@ -1,84 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { Photo, Note, PhotoType } from "@/lib/types";
+import { Note } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { PlusCircle, Trash2, Edit2, X } from "lucide-react";
+import { PlusCircle, Trash2, Edit2, X, ImagePlus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-interface TimelineEntry {
-  id: string;
-  type: 'photo' | 'note';
-  content: Photo | Note;
-  timestamp: string;
-}
-
 interface ProjectTimelineProps {
   projectId: string;
-  photos: Photo[];
   notes: Note[];
   onUpdate: () => void;
-  onPhotoUpload: (file: File, type: PhotoType) => Promise<void>;
-  onPhotoDelete: (photoId: string) => Promise<void>;
-  isUploading: boolean;
+  onPhotoUpload: (file: File) => Promise<string>;
 }
 
 export function ProjectTimeline({
   projectId,
-  photos,
   notes,
   onUpdate,
   onPhotoUpload,
-  onPhotoDelete,
-  isUploading,
 }: ProjectTimelineProps) {
   const [showNoteDialog, setShowNoteDialog] = useState(false);
-  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [newNotePhotos, setNewNotePhotos] = useState<File[]>([]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editNoteContent, setEditNoteContent] = useState('');
-  const [selectedPhotoType, setSelectedPhotoType] = useState<PhotoType>('progress');
+  const [editNotePhotos, setEditNotePhotos] = useState<File[]>([]);
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Combine photos and notes into a single timeline
-  const timeline: TimelineEntry[] = [
-    ...photos.map(photo => ({
-      id: photo.id,
-      type: 'photo' as const,
-      content: photo,
-      timestamp: photo.uploaded_at,
-    })),
-    ...notes.map(note => ({
-      id: note.id,
-      type: 'note' as const,
-      content: note,
-      timestamp: note.created_at,
-    })),
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Sort notes by created date
+  const timeline = notes.sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   const handleCreateNote = async () => {
     if (!newNoteContent.trim()) return;
 
     setIsSubmitting(true);
     try {
+      // Upload photos first if any
+      const uploadedPhotoUrls: string[] = [];
+      for (const file of newNotePhotos) {
+        const url = await onPhotoUpload(file);
+        uploadedPhotoUrls.push(url);
+      }
+
       const response = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
           content: newNoteContent,
+          photoUrls: uploadedPhotoUrls,
         }),
       });
 
       if (!response.ok) throw new Error('Failed to create note');
 
       setNewNoteContent('');
+      setNewNotePhotos([]);
       setShowNoteDialog(false);
       onUpdate();
     } catch (error) {
@@ -94,11 +80,22 @@ export function ProjectTimeline({
 
     setIsSubmitting(true);
     try {
+      // Upload new photos if any
+      const uploadedPhotoUrls: string[] = [];
+      for (const file of editNotePhotos) {
+        const url = await onPhotoUpload(file);
+        uploadedPhotoUrls.push(url);
+      }
+
+      // Combine existing photo URLs with newly uploaded ones
+      const allPhotoUrls = [...existingPhotoUrls, ...uploadedPhotoUrls];
+
       const response = await fetch(`/api/notes/${editingNote.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: editNoteContent,
+          photoUrls: allPhotoUrls,
         }),
       });
 
@@ -106,6 +103,8 @@ export function ProjectTimeline({
 
       setEditingNote(null);
       setEditNoteContent('');
+      setEditNotePhotos([]);
+      setExistingPhotoUrls([]);
       onUpdate();
     } catch (error) {
       console.error('Error updating note:', error);
@@ -132,12 +131,26 @@ export function ProjectTimeline({
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAddNotePhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setNewNotePhotos(prev => [...prev, ...files]);
+  };
 
-    await onPhotoUpload(file, selectedPhotoType);
-    setShowPhotoDialog(false);
+  const handleAddEditPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setEditNotePhotos(prev => [...prev, ...files]);
+  };
+
+  const removeNewPhoto = (index: number) => {
+    setNewNotePhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeEditPhoto = (index: number) => {
+    setEditNotePhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingPhoto = (index: number) => {
+    setExistingPhotoUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const formatDate = (dateString: string) => {
@@ -153,22 +166,16 @@ export function ProjectTimeline({
 
   return (
     <div className="space-y-6">
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Button onClick={() => setShowNoteDialog(true)} variant="outline" className="flex-1">
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Add Note
-        </Button>
-        <Button onClick={() => setShowPhotoDialog(true)} variant="outline" className="flex-1">
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Add Photo
-        </Button>
-      </div>
+      {/* Action Button */}
+      <Button onClick={() => setShowNoteDialog(true)} variant="outline" className="w-full">
+        <PlusCircle className="w-4 h-4 mr-2" />
+        Add Entry
+      </Button>
 
       {timeline.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <p>No timeline entries yet. Add a photo or note to get started!</p>
+            <p>No timeline entries yet. Add your first entry to get started!</p>
           </CardContent>
         </Card>
       ) : (
@@ -178,76 +185,61 @@ export function ProjectTimeline({
           
           {/* Timeline Entries */}
           <div className="space-y-6">
-            {timeline.map((entry, index) => (
-              <div key={entry.id} className="relative pl-12">
+            {timeline.map((note) => (
+              <div key={note.id} className="relative pl-12">
                 {/* Timeline Dot & Date */}
                 <div className="flex items-center gap-3 mb-2">
                   <div className="absolute left-2.5 w-3 h-3 rounded-full bg-primary border-2 border-background"></div>
                   <span className="text-sm text-muted-foreground">
-                    {formatDate(entry.timestamp)}
+                    {formatDate(note.created_at)}
                   </span>
                 </div>
                 
                 <Card>
-                  <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    {entry.type === 'photo' ? (
-                      <Badge variant="secondary">
-                        {(entry.content as Photo).photo_type === 'progress' ? 'Progress Photo' : 'Final Photo'}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Note</Badge>
-                    )}
-                  </div>
-                  
-                  {entry.type === 'photo' ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onPhotoDelete(entry.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingNote(entry.content as Note);
-                          setEditNoteContent((entry.content as Note).content);
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteNote(entry.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  <CardContent>
+                    <div className="flex items-start justify-end mb-2">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingNote(note);
+                            setEditNoteContent(note.content);
+                            setExistingPhotoUrls(note.photo_urls || []);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteNote(note.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {entry.type === 'photo' ? (
-                  <div className="relative w-full h-64 rounded-lg overflow-hidden mt-4">
-                    <Image
-                      src={(entry.content as Photo).storage_path}
-                      alt="Project photo"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-sm mt-2 prose prose-sm max-w-none prose-headings:font-semibold prose-a:text-primary prose-strong:font-semibold">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {(entry.content as Note).content}
-                    </ReactMarkdown>
-                  </div>
-                )}
+                    <div className="text-sm mt-2 prose prose-sm max-w-none prose-headings:font-semibold prose-a:text-primary prose-strong:font-semibold">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {note.content}
+                      </ReactMarkdown>
+                    </div>
+                    
+                    {note.photo_urls && note.photo_urls.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        {note.photo_urls.map((url, idx) => (
+                          <div key={idx} className="relative w-full h-48 rounded-lg overflow-hidden">
+                            <Image
+                              src={url}
+                              alt={`Photo ${idx + 1}`}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -256,45 +248,163 @@ export function ProjectTimeline({
         </div>
       )}
 
-      {/* Add Note Dialog */}
+      {/* Add Entry Dialog */}
       <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add a Note</DialogTitle>
+            <DialogTitle>Add Entry</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={newNoteContent}
-            onChange={(e) => setNewNoteContent(e.target.value)}
-            placeholder="What's happening with your project? (You can use markdown: **bold**, *italic*, - lists, etc.)"
-            rows={6}
-            className="bg-white"
-          />
+          <div className="space-y-4">
+            <div>
+              <Label>Note</Label>
+              <Textarea
+                value={newNoteContent}
+                onChange={(e) => setNewNoteContent(e.target.value)}
+                placeholder="What's happening with your project? (You can use markdown: **bold**, *italic*, - lists, etc.)"
+                rows={6}
+                className="bg-white mt-2"
+              />
+            </div>
+            <div>
+              <Label>Photos (optional)</Label>
+              <div className="mt-2">
+                <label className="cursor-pointer">
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-accent transition-colors">
+                    <ImagePlus className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Click to add photos</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAddNotePhotos}
+                    className="hidden"
+                  />
+                </label>
+                {newNotePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {newNotePhotos.map((file, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => removeNewPhoto(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNoteDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowNoteDialog(false);
+              setNewNotePhotos([]);
+            }}>
               Cancel
             </Button>
             <Button onClick={handleCreateNote} disabled={isSubmitting || !newNoteContent.trim()}>
-              {isSubmitting ? 'Adding...' : 'Add Note'}
+              {isSubmitting ? 'Adding...' : 'Add Entry'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Note Dialog */}
-      <Dialog open={!!editingNote} onOpenChange={() => setEditingNote(null)}>
-        <DialogContent>
+      {/* Edit Entry Dialog */}
+      <Dialog open={!!editingNote} onOpenChange={() => {
+        setEditingNote(null);
+        setEditNotePhotos([]);
+        setExistingPhotoUrls([]);
+      }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Note</DialogTitle>
+            <DialogTitle>Edit Entry</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={editNoteContent}
-            onChange={(e) => setEditNoteContent(e.target.value)}
-            placeholder="You can use markdown: **bold**, *italic*, - lists, etc."
-            rows={6}
-            className="bg-white"
-          />
+          <div className="space-y-4">
+            <div>
+              <Label>Note</Label>
+              <Textarea
+                value={editNoteContent}
+                onChange={(e) => setEditNoteContent(e.target.value)}
+                placeholder="You can use markdown: **bold**, *italic*, - lists, etc."
+                rows={6}
+                className="bg-white mt-2"
+              />
+            </div>
+            <div>
+              <Label>Photos</Label>
+              <div className="mt-2">
+                {/* Existing photos */}
+                {existingPhotoUrls.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {existingPhotoUrls.map((url, idx) => (
+                      <div key={`existing-${idx}`} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                        <Image
+                          src={url}
+                          alt={`Photo ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          onClick={() => removeExistingPhoto(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* New photos to upload */}
+                {editNotePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {editNotePhotos.map((file, idx) => (
+                      <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => removeEditPhoto(idx)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Add more photos button */}
+                <label className="cursor-pointer">
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-accent transition-colors">
+                    <ImagePlus className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Click to add more photos</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAddEditPhotos}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingNote(null)}>
+            <Button variant="outline" onClick={() => {
+              setEditingNote(null);
+              setEditNotePhotos([]);
+              setExistingPhotoUrls([]);
+            }}>
               Cancel
             </Button>
             <Button onClick={handleUpdateNote} disabled={isSubmitting || !editNoteContent.trim()}>
@@ -304,57 +414,6 @@ export function ProjectTimeline({
         </DialogContent>
       </Dialog>
 
-      {/* Add Photo Dialog */}
-      <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a Photo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Photo Type</label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={selectedPhotoType === 'progress' ? 'default' : 'outline'}
-                  onClick={() => setSelectedPhotoType('progress')}
-                  className="flex-1"
-                >
-                  Progress
-                </Button>
-                <Button
-                  type="button"
-                  variant={selectedPhotoType === 'final' ? 'default' : 'outline'}
-                  onClick={() => setSelectedPhotoType('final')}
-                  className="flex-1"
-                >
-                  Final
-                </Button>
-              </div>
-            </div>
-            <div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                disabled={isUploading}
-                className="block w-full text-sm text-slate-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-primary file:text-primary-foreground
-                  hover:file:bg-primary/90
-                  file:cursor-pointer cursor-pointer"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPhotoDialog(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

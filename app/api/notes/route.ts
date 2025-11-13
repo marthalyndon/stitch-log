@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { projectId, content } = await request.json();
+    const { projectId, content, photoUrls } = await request.json();
 
     if (!projectId || !content) {
       return NextResponse.json(
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       .insert({
         project_id: projectId,
         content,
+        photo_urls: photoUrls || [],
       })
       .select()
       .single();

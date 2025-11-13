@@ -4,26 +4,11 @@ import { ProjectWithDetails } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { STATUS_CONFIG } from "@/lib/constants";
 
 interface ProjectCardProps {
   project: ProjectWithDetails;
 }
-
-const statusColors = {
-  idea: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-  queue: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-  "in-progress": "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-  "on-hold": "bg-gray-100 text-gray-800 hover:bg-gray-200",
-  completed: "bg-green-100 text-green-800 hover:bg-green-200",
-};
-
-const statusLabels = {
-  idea: "Idea",
-  queue: "Queue",
-  "in-progress": "In Progress",
-  "on-hold": "On Hold",
-  completed: "Completed",
-};
 
 export function ProjectCard({ project }: ProjectCardProps) {
   return (
@@ -32,8 +17,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-xl">{project.name}</CardTitle>
-            <Badge className={statusColors[project.status]}>
-              {statusLabels[project.status]}
+            <Badge className={STATUS_CONFIG[project.status].badgeColor}>
+              {STATUS_CONFIG[project.status].label}
             </Badge>
           </div>
           {project.patterns && project.patterns.length > 0 && (

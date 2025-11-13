@@ -8,18 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingPage } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, useDroppable, useDraggable } from "@dnd-kit/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-
-const STATUS_COLUMNS: { id: ProjectStatus; label: string; color: string }[] = [
-  { id: 'idea', label: 'Idea', color: 'bg-purple-100 border-purple-300' },
-  { id: 'queue', label: 'Queue', color: 'bg-blue-100 border-blue-300' },
-  { id: 'in-progress', label: 'In Progress', color: 'bg-yellow-100 border-yellow-300' },
-  { id: 'on-hold', label: 'On Hold', color: 'bg-gray-100 border-gray-300' },
-  { id: 'completed', label: 'Completed', color: 'bg-green-100 border-green-300' },
-];
+import { STATUS_COLUMNS, STATUS_CONFIG } from "@/lib/constants";
 
 export default function HomePage() {
   const [projects, setProjects] = useState<ProjectWithDetails[]>([]);
@@ -266,7 +259,6 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ status, label, color, projects, isHorizontal = false }: KanbanColumnProps) {
-  const { useDroppable } = require('@dnd-kit/core');
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   if (isHorizontal) {
@@ -336,7 +328,6 @@ interface DraggableProjectCardProps {
 }
 
 function DraggableProjectCard({ project }: DraggableProjectCardProps) {
-  const { useDraggable } = require('@dnd-kit/core');
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: project.id,
   });
@@ -363,14 +354,6 @@ function DraggableProjectCard({ project }: DraggableProjectCardProps) {
 interface ProjectCardDraggingProps {
   project: ProjectWithDetails;
 }
-
-const statusBadgeColors: Record<ProjectStatus, string> = {
-  idea: "bg-purple-100 text-purple-800",
-  queue: "bg-blue-100 text-blue-800",
-  "in-progress": "bg-yellow-100 text-yellow-800",
-  "on-hold": "bg-gray-100 text-gray-800",
-  completed: "bg-green-100 text-green-800",
-};
 
 function ProjectCardDragging({ project }: ProjectCardDraggingProps) {
   return (

@@ -2,32 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ProjectWithDetails, PhotoType, ProjectStatus } from "@/lib/types";
+import { ProjectWithDetails, ProjectStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProjectTimeline } from "@/components/project-timeline";
+import { StatusSelect } from "@/components/status-select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LoadingPage } from "@/components/loading";
 import Link from "next/link";
 import Image from "next/image";
-
-const statusColors: Record<ProjectStatus, string> = {
-  idea: "bg-purple-100 text-purple-800",
-  queue: "bg-blue-100 text-blue-800",
-  "in-progress": "bg-yellow-100 text-yellow-800",
-  "on-hold": "bg-gray-100 text-gray-800",
-  completed: "bg-green-100 text-green-800",
-};
-
-const statusLabels: Record<ProjectStatus, string> = {
-  idea: "Idea",
-  queue: "Queue",
-  "in-progress": "In Progress",
-  "on-hold": "On Hold",
-  completed: "Completed",
-};
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -79,48 +63,32 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handlePhotoUpload = async (file: File, type: PhotoType) => {
+  const handlePhotoUpload = async (file: File): Promise<string> => {
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('projectId', projectId);
-      formData.append('photoType', type);
 
-      const response = await fetch('/api/photos', {
+      // Use the storage-only endpoint to avoid creating duplicate photo records
+      const response = await fetch('/api/storage/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
-        await fetchProject();
+        const data = await response.json();
+        // Return just the URL from storage
+        return data.url;
       } else {
         throw new Error('Failed to upload photo');
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Failed to upload photo. Please try again.');
+      throw error;
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handlePhotoDelete = async (photoId: string) => {
-    if (!confirm('Delete this photo?')) return;
-
-    try {
-      const response = await fetch(`/api/photos/${photoId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await fetchProject();
-      } else {
-        throw new Error('Failed to delete photo');
-      }
-    } catch (error) {
-      console.error('Error deleting photo:', error);
-      alert('Failed to delete photo. Please try again.');
     }
   };
 
@@ -167,43 +135,11 @@ export default function ProjectDetailPage() {
           {/* Status Dropdown */}
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-medium">Status:</span>
-            <Select value={project.status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-40 bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="idea">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                    Idea
-                  </span>
-                </SelectItem>
-                <SelectItem value="queue">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                    Queue
-                  </span>
-                </SelectItem>
-                <SelectItem value="in-progress">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                    In Progress
-                  </span>
-                </SelectItem>
-                <SelectItem value="on-hold">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-                    On Hold
-                  </span>
-                </SelectItem>
-                <SelectItem value="completed">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Completed
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <StatusSelect 
+              value={project.status} 
+              onValueChange={handleStatusChange}
+              className="w-40 bg-white"
+            />
           </div>
 
           {project.description && (
@@ -228,12 +164,9 @@ export default function ProjectDetailPage() {
             <h2 className="text-lg font-semibold mb-4">Project Timeline</h2>
             <ProjectTimeline
               projectId={projectId}
-              photos={project.photos || []}
               notes={project.notes || []}
               onUpdate={fetchProject}
               onPhotoUpload={handlePhotoUpload}
-              onPhotoDelete={handlePhotoDelete}
-              isUploading={isUploading}
             />
           </div>
         </div>

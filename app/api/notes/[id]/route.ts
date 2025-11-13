@@ -12,7 +12,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { content } = await request.json();
+    const { content, photoUrls } = await request.json();
 
     if (!content) {
       return NextResponse.json(
@@ -21,12 +21,18 @@ export async function PATCH(
       );
     }
 
+    const updateData: any = {
+      content,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (photoUrls !== undefined) {
+      updateData.photo_urls = photoUrls;
+    }
+
     const { data, error } = await supabase
       .from('notes')
-      .update({
-        content,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
